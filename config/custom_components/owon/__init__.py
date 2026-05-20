@@ -16,12 +16,18 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     DEFAULT_DEVICE_MODEL,
+    DEVICE_MODEL_341,
     DEVICE_MODEL_PREFIXES,
     DEVICE_OFFLINE_TIMEOUT,
     DEVICEINFO_QUERY_INTERVAL,
+    DP_QUERY_INTERVAL,
+    MQTT_TOPIC_CONTROL_TPL,
     MQTT_TOPIC_DEVICEINFO,
     MQTT_TOPIC_GET_DEVICEINFO_TPL,
+    MQTT_TOPIC_REPLY,
     MQTT_TOPIC_REPORT,
+    OWON_APP_CLIENT_ID,
+    PCT341_QUERY_DPS,
     QUERY_DEVICEINFO_PAYLOAD,
     SIGNAL_DEVICE_MODEL_CHANGED,
     SIGNAL_DEVICE_UPDATE,
@@ -161,6 +167,8 @@ class OwonMeterDataManager:
         self.device_info: dict[str, dict[str, Any]] = {}
         # last time a getdeviceinfo query was sent per device
         self.deviceinfo_queried: dict[str, Any] = {}
+        # last time a missing DP query was sent per device/dp
+        self.dp_queried: dict[str, dict[str, Any]] = {}
 
     @staticmethod
     def _resolve_model(model_str: str) -> str:
@@ -208,6 +216,7 @@ class OwonMeterDataManager:
             async_dispatcher_send(
                 self.hass, f"{SIGNAL_DEVICE_MODEL_CHANGED}_{device_id}"
             )
+        self._maybe_query_missing_dps(device_id)
 
     async def async_query_deviceinfo(self, device_id: str) -> None:
         """Ask the device to re-publish its deviceinfo."""
@@ -219,6 +228,76 @@ class OwonMeterDataManager:
             self.hass, topic, QUERY_DEVICEINFO_PAYLOAD, qos, retain
         )
         _LOGGER.debug("Sent getdeviceinfo query to %s", device_id)
+
+    async def async_query_dp(self, device_id: str, dp: str) -> None:
+        """Ask the device to report a specific DP value."""
+        topic = MQTT_TOPIC_CONTROL_TPL.format(
+            device_id=device_id, app_client_id=OWON_APP_CLIENT_ID
+        )
+        payload = f'{{"{dp}"}}'
+        qos = 0
+        retain = False
+        _log_mqtt_tx(topic, payload, qos, retain)
+        await mqtt.async_publish(self.hass, topic, payload, qos, retain)
+        _LOGGER.debug("Sent DP%s query to %s via control topic", dp, device_id)
+
+    @callback
+    def _maybe_query_missing_dps(self, device_id: str) -> None:
+        """Actively query missing PCT341 DPs with interval throttling."""
+        if self.get_device_model(device_id) != DEVICE_MODEL_341:
+            return
+        data = self.devices.get(device_id, {})
+        now = dt_util.utcnow()
+        dp_history = self.dp_queried.setdefault(device_id, {})
+
+        for dp in PCT341_QUERY_DPS:
+            value = data.get(dp)
+            if value is not None and value != "":
+                continue
+
+            last_q = dp_history.get(dp)
+            if last_q is not None and (now - last_q) < DP_QUERY_INTERVAL:
+                continue
+
+            dp_history[dp] = now
+            self.hass.async_create_task(self.async_query_dp(device_id, dp))
+
+    @callback
+    def handle_reply(self, msg: ReceiveMessage) -> None:
+        """Handle reply payloads from device control topics."""
+        _log_mqtt_raw(msg)
+        parts = msg.topic.split("/")
+        if len(parts) != 4:
+            _LOGGER.debug("Ignoring unexpected reply topic format: %s", msg.topic)
+            return
+        _, _, device_id, app_client_id = parts
+        if app_client_id != OWON_APP_CLIENT_ID:
+            _LOGGER.debug(
+                "Ignoring reply for unsupported app client %s on device %s",
+                app_client_id,
+                device_id,
+            )
+            return
+
+        payload = _parse_payload_object(msg.payload)
+        if payload is None or not isinstance(payload, dict):
+            _LOGGER.warning(
+                "Invalid reply payload from device %s: %s", device_id, msg.payload
+            )
+            return
+
+        if device_id not in self.devices:
+            self.devices[device_id] = {}
+
+        self.last_seen[device_id] = dt_util.utcnow()
+        for key, value in payload.items():
+            self.devices[device_id][str(key)] = value
+
+        if "128" in payload:
+            _LOGGER.info("Received DP128 reply for %s: %s", device_id, payload["128"])
+
+        async_dispatcher_send(self.hass, f"{SIGNAL_DEVICE_UPDATE}_{device_id}")
+        self._maybe_query_missing_dps(device_id)
 
     @callback
     def is_device_available(self, device_id: str) -> bool:
@@ -316,6 +395,8 @@ class OwonMeterDataManager:
                 self.deviceinfo_queried[device_id] = dt_util.utcnow()
                 self.hass.async_create_task(self.async_query_deviceinfo(device_id))
 
+        self._maybe_query_missing_dps(device_id)
+
         async_dispatcher_send(self.hass, f"{SIGNAL_DEVICE_UPDATE}_{device_id}")
         _LOGGER.debug("Dispatched device update signal for %s", device_id)
 
@@ -340,6 +421,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: OwonMeterConfigEntry) ->
         await mqtt.async_subscribe(
             hass, MQTT_TOPIC_DEVICEINFO, manager.handle_deviceinfo, 0
         )
+    )
+    entry.async_on_unload(
+        await mqtt.async_subscribe(hass, MQTT_TOPIC_REPLY, manager.handle_reply, 0)
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

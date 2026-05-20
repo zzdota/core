@@ -10,6 +10,21 @@ MQTT_TOPIC_DEVICEINFO = "device/+/deviceinfo"
 # HA sends this to ask the device to re-publish deviceinfo
 MQTT_TOPIC_GET_DEVICEINFO_TPL = "device/{device_id}/getdeviceinfo"
 QUERY_DEVICEINFO_PAYLOAD = '{"query":"deviceinfo"}'
+OWON_APP_CLIENT_ID = "homeassistant"
+MQTT_TOPIC_CONTROL_TPL = "api/device/{device_id}/{app_client_id}"
+MQTT_TOPIC_REPLY = f"reply/device/+/{OWON_APP_CLIENT_ID}"
+PCT341_QUERY_DPS: tuple[str, ...] = (
+    "120",
+    "121",
+    "122",
+    "123",
+    "124",
+    "125",
+    "126",
+    "127",
+    "128",
+    "129",
+)
 
 # Supported device model identifiers (as reported in deviceinfo "model" field)
 DEVICE_MODEL_321 = "321"
@@ -31,6 +46,7 @@ DEVICE_OFFLINE_TIMEOUT = timedelta(seconds=300)
 AVAILABILITY_CHECK_INTERVAL = timedelta(seconds=60)
 # How often to re-query deviceinfo when the model is still unknown
 DEVICEINFO_QUERY_INTERVAL = timedelta(seconds=60)
+DP_QUERY_INTERVAL = timedelta(seconds=60)
 
 MANUFACTURER = "OWON"
 MODEL = "PCT321"

@@ -229,11 +229,15 @@ def expand_341_payload(dp_data: dict[str, Any]) -> dict[str, Any]:
         expanded["341_energy_consumed_total"] = parsed["total_energy_consumed_kwh"]
         expanded["341_energy_generated_total"] = parsed["total_energy_generated_kwh"]
 
-    # --- DP 125: sub-circuit current & power ---
+    # --- DP 125: sub-circuit current & power (default 0 when DP absent) ---
     if "125" in dp_data:
-        for cid, vals in parse_subcircuit_power_current(dp_data["125"]).items():
-            expanded[f"341_sub{cid}_power"] = vals["power_kw"]
-            expanded[f"341_sub{cid}_current"] = vals["current_a"]
+        sub_power_current = parse_subcircuit_power_current(dp_data["125"])
+    else:
+        sub_power_current = {}
+    for cid in range(1, 17):
+        vals = sub_power_current.get(cid, {"power_kw": 0.0, "current_a": 0.0})
+        expanded[f"341_sub{cid}_power"] = vals["power_kw"]
+        expanded[f"341_sub{cid}_current"] = vals["current_a"]
 
     # --- DP 126: sub-circuit energy (default 0 when DP absent) ---
     if "126" in dp_data:

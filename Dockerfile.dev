@@ -53,7 +53,7 @@ RUN --mount=type=bind,source=requirements.txt,target=requirements.txt \
     uv pip install -r requirements.txt -r requirements_test.txt
 
 # Claude Code native install
-RUN curl -fsSL https://claude.ai/install.sh | bash
+# RUN curl -k -fsSL https://claude.ai/install.sh | bash
 
 WORKDIR /workspaces
 
