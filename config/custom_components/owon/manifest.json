@@ -1,0 +1,11 @@
+{
+  "domain": "owon",
+  "name": "OWON",
+  "codeowners": ["@zzdota"],
+  "config_flow": true,
+  "dependencies": ["mqtt"],
+  "documentation": "https://github.com/zzdota/owon_meter_pct321_wifi_mqtt",
+  "iot_class": "local_push",
+  "requirements": [],
+  "version": "1.0.0"
+}
