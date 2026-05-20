@@ -538,11 +538,18 @@ class Owon321Sensor(SensorEntity):
         self._device_id = device_id
         self._manager = manager
         self._attr_unique_id = f"{device_id}_{description.key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, device_id)},
-            name=f"{MANUFACTURER} {MODEL} {device_id}",
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info with dynamic firmware version."""
+        device_info_dict = self._manager.device_info.get(self._device_id, {})
+        fw_version = device_info_dict.get("fw_version")
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._device_id)},
+            name=f"{MANUFACTURER} {MODEL} {self._device_id}",
             manufacturer=MANUFACTURER,
             model=MODEL,
+            sw_version=fw_version,
         )
 
     async def async_added_to_hass(self) -> None:
@@ -612,18 +619,25 @@ class Owon341Sensor(SensorEntity):
         self._device_id = device_id
         self._manager = manager
         self._attr_unique_id = f"{device_id}_{description.key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, device_id)},
-            name=f"{MANUFACTURER} PCT341 {device_id}",
-            manufacturer=MANUFACTURER,
-            model="PCT341",
-        )
 
         match = _SUBCIRCUIT_KEY_RE.match(description.key)
         if match:
             self._attr_translation_placeholders = {
                 "circuit_id": match.group("circuit_id")
             }
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info with dynamic firmware version."""
+        device_info_dict = self._manager.device_info.get(self._device_id, {})
+        fw_version = device_info_dict.get("fw_version")
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._device_id)},
+            name=f"{MANUFACTURER} PCT341 {self._device_id}",
+            manufacturer=MANUFACTURER,
+            model="PCT341",
+            sw_version=fw_version,
+        )
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to device updates when added to hass."""
