@@ -435,6 +435,30 @@ TOTAL_341_SENSORS: tuple[Owon341SensorEntityDescription, ...] = (
 
 DIAG_341_SENSORS: tuple[Owon341SensorEntityDescription, ...] = (
     Owon341SensorEntityDescription(
+        key="device_id",
+        data_key="device_id",
+        deviceinfo_key="device_id",
+        translation_key="device_id",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_string=True,
+    ),
+    Owon341SensorEntityDescription(
+        key="device_model",
+        data_key="device_model",
+        deviceinfo_key="model",
+        translation_key="device_model",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_string=True,
+    ),
+    Owon341SensorEntityDescription(
+        key="device_sub_model",
+        data_key="device_sub_model",
+        deviceinfo_key="subModel",
+        translation_key="device_sub_model",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_string=True,
+    ),
+    Owon341SensorEntityDescription(
         key="341_measurement_type",
         data_key="341_measurement_type",
         translation_key="measurement_type",

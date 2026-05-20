@@ -203,6 +203,8 @@ class OwonMeterDataManager:
             return
 
         self.device_info[device_id] = info
+        # Store device_id itself so sensors can read it via deviceinfo_key
+        self.device_info[device_id]["device_id"] = device_id
         raw_model = str(info.get("model", ""))
         resolved = self._resolve_model(raw_model) if raw_model else DEFAULT_DEVICE_MODEL
         old_model = self.device_models.get(device_id)

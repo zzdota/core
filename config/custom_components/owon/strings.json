@@ -33,7 +33,6 @@
       "active_power_total": { "name": "Total active power" },
       "frequency": { "name": "Frequency" },
       "temperature": { "name": "Device temperature" },
-      "measurement_type": { "name": "Measurement type" },
       "rssi": { "name": "RSSI" },
       "ct_insertion": { "name": "CT insertion bitmap" },
       "sub_circuit_active_power": {
@@ -46,7 +45,11 @@
       "sub_circuit_energy_generated": {
         "name": "Sub-circuit {circuit_id} energy generated"
       },
-      "firmware_version": { "name": "Firmware version" },
+      "device_id": { "name": "1 Device ID" },
+      "device_model": { "name": "2 Device model" },
+      "device_sub_model": { "name": "3 Device sub model" },
+      "measurement_type": { "name": "4 Measurement type" },
+      "firmware_version": { "name": "5 Firmware version" },
       "sub_firmware_version": { "name": "Sub firmware version" },
       "hardware_version": { "name": "Hardware version" },
       "device_status": { "name": "Device status" },
