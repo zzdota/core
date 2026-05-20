@@ -282,6 +282,7 @@ class Owon341SensorEntityDescription(SensorEntityDescription):
     """Sensor description for PCT341 data."""
 
     data_key: str  # key inside expanded 341 data dict
+    deviceinfo_key: str | None = None  # if set, read from manager.device_info instead
     scale: float = 1.0
     is_enum: bool = False
     is_string: bool = False
@@ -440,37 +441,12 @@ DIAG_341_SENSORS: tuple[Owon341SensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         is_string=True,
     ),
-    Owon341SensorEntityDescription(
-        key="341_rssi",
-        data_key="341_rssi",
-        translation_key="rssi",
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    Owon341SensorEntityDescription(
-        key="341_ct_insertion",
-        data_key="341_ct_insertion",
-        translation_key="ct_insertion",
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    # firmware versions reuse DP 1/2/3 same as 321
+    # firmware version comes from deviceinfo payload (fw_version field)
     Owon341SensorEntityDescription(
         key="firmware_version",
         data_key="1",
+        deviceinfo_key="fw_version",
         translation_key="firmware_version",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        is_string=True,
-    ),
-    Owon341SensorEntityDescription(
-        key="sub_firmware_version",
-        data_key="2",
-        translation_key="sub_firmware_version",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        is_string=True,
-    ),
-    Owon341SensorEntityDescription(
-        key="hardware_version",
-        data_key="3",
-        translation_key="hardware_version",
         entity_category=EntityCategory.DIAGNOSTIC,
         is_string=True,
     ),

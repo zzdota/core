@@ -11,6 +11,7 @@ from homeassistant.components.mqtt import ReceiveMessage
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
 
@@ -20,6 +21,7 @@ from .const import (
     DEVICE_MODEL_PREFIXES,
     DEVICE_OFFLINE_TIMEOUT,
     DEVICEINFO_QUERY_INTERVAL,
+    DOMAIN,
     DP_QUERY_INTERVAL,
     MQTT_TOPIC_CONTROL_TPL,
     MQTT_TOPIC_DEVICEINFO,
@@ -216,6 +218,13 @@ class OwonMeterDataManager:
             async_dispatcher_send(
                 self.hass, f"{SIGNAL_DEVICE_MODEL_CHANGED}_{device_id}"
             )
+        # Update device registry so sw_version is shown in HA device info page
+        fw_version = info.get("fw_version")
+        if fw_version:
+            dev_reg = dr.async_get(self.hass)
+            device_entry = dev_reg.async_get_device(identifiers={(DOMAIN, device_id)})
+            if device_entry is not None:
+                dev_reg.async_update_device(device_entry.id, sw_version=str(fw_version))
         # Always notify entities so device registry picks up fw_version changes
         async_dispatcher_send(self.hass, f"{SIGNAL_DEVICE_UPDATE}_{device_id}")
         self._maybe_query_missing_dps(device_id)

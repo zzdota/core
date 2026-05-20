@@ -542,9 +542,8 @@ class Owon321Sensor(SensorEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info including firmware version when available."""
-        fw_version = (
-            self._manager.device_info.get(self._device_id, {})
-            .get("fw_version")
+        fw_version = self._manager.device_info.get(self._device_id, {}).get(
+            "fw_version"
         )
         return DeviceInfo(
             identifiers={(DOMAIN, self._device_id)},
@@ -631,9 +630,8 @@ class Owon341Sensor(SensorEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info including firmware version when available."""
-        fw_version = (
-            self._manager.device_info.get(self._device_id, {})
-            .get("fw_version")
+        fw_version = self._manager.device_info.get(self._device_id, {}).get(
+            "fw_version"
         )
         return DeviceInfo(
             identifiers={(DOMAIN, self._device_id)},
@@ -665,7 +663,14 @@ class Owon341Sensor(SensorEntity):
 
     @property
     def native_value(self) -> Any | None:
-        """Return the sensor value from expanded 341 data."""
+        """Return the sensor value from expanded 341 data or deviceinfo."""
+        # If deviceinfo_key is set, read from deviceinfo payload first
+        if self.entity_description.deviceinfo_key is not None:
+            raw = self._manager.device_info.get(self._device_id, {}).get(
+                self.entity_description.deviceinfo_key
+            )
+            if raw is not None:
+                return str(raw)
         data = self._manager.devices.get(self._device_id, {})
         # Expand raw hex DPs into named flat keys on every read (lightweight)
         expanded = expand_341_payload(data)
