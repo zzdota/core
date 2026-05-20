@@ -541,9 +541,11 @@ class Owon321Sensor(SensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return device info with dynamic firmware version."""
-        device_info_dict = self._manager.device_info.get(self._device_id, {})
-        fw_version = device_info_dict.get("fw_version")
+        """Return device info including firmware version when available."""
+        fw_version = (
+            self._manager.device_info.get(self._device_id, {})
+            .get("fw_version")
+        )
         return DeviceInfo(
             identifiers={(DOMAIN, self._device_id)},
             name=f"{MANUFACTURER} {MODEL} {self._device_id}",
@@ -628,9 +630,11 @@ class Owon341Sensor(SensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return device info with dynamic firmware version."""
-        device_info_dict = self._manager.device_info.get(self._device_id, {})
-        fw_version = device_info_dict.get("fw_version")
+        """Return device info including firmware version when available."""
+        fw_version = (
+            self._manager.device_info.get(self._device_id, {})
+            .get("fw_version")
+        )
         return DeviceInfo(
             identifiers={(DOMAIN, self._device_id)},
             name=f"{MANUFACTURER} PCT341 {self._device_id}",
