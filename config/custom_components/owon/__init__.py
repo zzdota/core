@@ -216,6 +216,8 @@ class OwonMeterDataManager:
             async_dispatcher_send(
                 self.hass, f"{SIGNAL_DEVICE_MODEL_CHANGED}_{device_id}"
             )
+        # Always notify entities so device registry picks up fw_version changes
+        async_dispatcher_send(self.hass, f"{SIGNAL_DEVICE_UPDATE}_{device_id}")
         self._maybe_query_missing_dps(device_id)
 
     async def async_query_deviceinfo(self, device_id: str) -> None:
