@@ -459,18 +459,17 @@ DIAG_341_SENSORS: tuple[Owon341SensorEntityDescription, ...] = (
         is_string=True,
     ),
     Owon341SensorEntityDescription(
-        key="341_measurement_type",
-        data_key="341_measurement_type",
-        translation_key="measurement_type",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        is_string=True,
-    ),
-    # firmware version comes from deviceinfo payload (fw_version field)
-    Owon341SensorEntityDescription(
         key="firmware_version",
         data_key="1",
         deviceinfo_key="fw_version",
         translation_key="firmware_version",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_string=True,
+    ),
+    Owon341SensorEntityDescription(
+        key="341_measurement_type",
+        data_key="341_measurement_type",
+        translation_key="measurement_type",
         entity_category=EntityCategory.DIAGNOSTIC,
         is_string=True,
     ),

@@ -165,6 +165,8 @@ class OwonMeterDataManager:
         self.last_seen: dict[str, Any] = {}
         # model identifier per device: "321" | "341" (default: DEFAULT_DEVICE_MODEL)
         self.device_models: dict[str, str] = {}
+        # devices with confirmed model from deviceinfo payload
+        self.model_confirmed: set[str] = set()
         # raw deviceinfo payload fields per device
         self.device_info: dict[str, dict[str, Any]] = {}
         # last time a getdeviceinfo query was sent per device
@@ -205,6 +207,7 @@ class OwonMeterDataManager:
         self.device_info[device_id] = info
         # Store device_id itself so sensors can read it via deviceinfo_key
         self.device_info[device_id]["device_id"] = device_id
+        self.model_confirmed.add(device_id)
         raw_model = str(info.get("model", ""))
         resolved = self._resolve_model(raw_model) if raw_model else DEFAULT_DEVICE_MODEL
         old_model = self.device_models.get(device_id)
@@ -399,7 +402,7 @@ class OwonMeterDataManager:
         # Re-query deviceinfo on every report until the model is confirmed.
         # This handles devices that don't publish with retain=true and may have
         # been offline when the initial query was sent.
-        if self.get_device_model(device_id) == DEFAULT_DEVICE_MODEL:
+        if device_id not in self.model_confirmed:
             last_q = self.deviceinfo_queried.get(device_id)
             if (
                 last_q is None

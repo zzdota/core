@@ -42,8 +42,11 @@
       "device_id": { "name": "1 设备ID" },
       "device_model": { "name": "2 设备主类型" },
       "device_sub_model": { "name": "3 设备子类型" },
-      "measurement_type": { "name": "4 测量类型" },
-      "firmware_version": { "name": "5 固件版本" },
+      "firmware_version": { "name": "4 固件版本" },
+      "sub_firmware_version": { "name": "子固件版本" },
+      "hardware_version": { "name": "硬件版本" },
+      "device_status": { "name": "设备状态" },
+      "measurement_type": { "name": "5 测量类型" },
       "voltage_phase_seq": {
         "name": "电压相序检测",
         "state": {

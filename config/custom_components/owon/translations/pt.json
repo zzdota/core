@@ -28,14 +28,31 @@
       "power_factor_c": { "name": "Fator de potencia da fase C" },
       "energy_consumed_c": { "name": "Energia da fase C" },
       "energy_consumed_total": { "name": "Energia total" },
+      "energy_generated_total": { "name": "Energia total gerada" },
       "current_total": { "name": "Corrente total" },
       "active_power_total": { "name": "Potencia ativa total" },
       "frequency": { "name": "Frequencia" },
       "temperature": { "name": "Temperatura do dispositivo" },
-      "firmware_version": { "name": "Versao do firmware" },
+      "rssi": { "name": "RSSI" },
+      "ct_insertion": { "name": "Bitmap de insercao TC" },
+      "sub_circuit_active_power": {
+        "name": "Potencia ativa do subcircuito {circuit_id}"
+      },
+      "sub_circuit_current": { "name": "Corrente do subcircuito {circuit_id}" },
+      "sub_circuit_energy_consumed": {
+        "name": "Energia consumida do subcircuito {circuit_id}"
+      },
+      "sub_circuit_energy_generated": {
+        "name": "Energia gerada do subcircuito {circuit_id}"
+      },
+      "device_id": { "name": "1 ID do dispositivo" },
+      "device_model": { "name": "2 Modelo do dispositivo" },
+      "device_sub_model": { "name": "3 Submodelo do dispositivo" },
+      "firmware_version": { "name": "4 Versao do firmware" },
       "sub_firmware_version": { "name": "Versao do subfirmware" },
       "hardware_version": { "name": "Versao do hardware" },
       "device_status": { "name": "Status do dispositivo" },
+      "measurement_type": { "name": "5 Tipo de medicao" },
       "voltage_phase_seq": {
         "name": "Sequencia de fase da tensao",
         "state": {

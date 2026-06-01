@@ -49,7 +49,7 @@
       "device_model": { "name": "2 Device model" },
       "device_sub_model": { "name": "3 Device sub model" },
       "measurement_type": { "name": "4 Measurement type" },
-      "firmware_version": { "name": "5 Firmware version" },
+      "firmware_version": { "name": "4 Firmware version" },
       "sub_firmware_version": { "name": "Sub firmware version" },
       "hardware_version": { "name": "Hardware version" },
       "device_status": { "name": "Device status" },

@@ -28,14 +28,31 @@
       "power_factor_c": { "name": "Leistungsfaktor Phase C" },
       "energy_consumed_c": { "name": "Energie Phase C" },
       "energy_consumed_total": { "name": "Gesamtenergie" },
+      "energy_generated_total": { "name": "Erzeugte Gesamtenergie" },
       "current_total": { "name": "Gesamtstrom" },
       "active_power_total": { "name": "Gesamtwirkleistung" },
       "frequency": { "name": "Frequenz" },
       "temperature": { "name": "Geraetetemperatur" },
-      "firmware_version": { "name": "Firmware-Version" },
+      "rssi": { "name": "RSSI" },
+      "ct_insertion": { "name": "CT-Einschaltbitmap" },
+      "sub_circuit_active_power": {
+        "name": "Stromkreis {circuit_id} Wirkleistung"
+      },
+      "sub_circuit_current": { "name": "Stromkreis {circuit_id} Strom" },
+      "sub_circuit_energy_consumed": {
+        "name": "Stromkreis {circuit_id} Energieverbrauch"
+      },
+      "sub_circuit_energy_generated": {
+        "name": "Stromkreis {circuit_id} erzeugte Energie"
+      },
+      "device_id": { "name": "1 Geraete-ID" },
+      "device_model": { "name": "2 Geraetemodell" },
+      "device_sub_model": { "name": "3 Geraete-Untermodell" },
+      "firmware_version": { "name": "4 Firmware-Version" },
       "sub_firmware_version": { "name": "Sub-Firmware-Version" },
       "hardware_version": { "name": "Hardware-Version" },
       "device_status": { "name": "Geraetestatus" },
+      "measurement_type": { "name": "5 Messungstyp" },
       "voltage_phase_seq": {
         "name": "Phasenfolge der Spannung",
         "state": {

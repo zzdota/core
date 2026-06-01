@@ -28,14 +28,31 @@
       "power_factor_c": { "name": "Facteur de puissance phase C" },
       "energy_consumed_c": { "name": "Energie phase C" },
       "energy_consumed_total": { "name": "Energie totale" },
+      "energy_generated_total": { "name": "Energie totale produite" },
       "current_total": { "name": "Courant total" },
       "active_power_total": { "name": "Puissance active totale" },
       "frequency": { "name": "Frequence" },
       "temperature": { "name": "Temperature de l'appareil" },
-      "firmware_version": { "name": "Version du firmware" },
+      "rssi": { "name": "RSSI" },
+      "ct_insertion": { "name": "Bitmap d'insertion TC" },
+      "sub_circuit_active_power": {
+        "name": "Puissance active sous-circuit {circuit_id}"
+      },
+      "sub_circuit_current": { "name": "Courant sous-circuit {circuit_id}" },
+      "sub_circuit_energy_consumed": {
+        "name": "Energie consommee sous-circuit {circuit_id}"
+      },
+      "sub_circuit_energy_generated": {
+        "name": "Energie produite sous-circuit {circuit_id}"
+      },
+      "device_id": { "name": "1 ID de l'appareil" },
+      "device_model": { "name": "2 Modele de l'appareil" },
+      "device_sub_model": { "name": "3 Sous-modele de l'appareil" },
+      "firmware_version": { "name": "4 Version du firmware" },
       "sub_firmware_version": { "name": "Version du sous-firmware" },
       "hardware_version": { "name": "Version du materiel" },
       "device_status": { "name": "Etat de l'appareil" },
+      "measurement_type": { "name": "5 Type de mesure" },
       "voltage_phase_seq": {
         "name": "Sequence des phases de tension",
         "state": {

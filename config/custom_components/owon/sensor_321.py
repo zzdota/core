@@ -91,6 +91,7 @@ class OwonSensorEntityDescription(SensorEntityDescription):
     """Describe an OWON meter sensor entity."""
 
     dp_id: str
+    deviceinfo_key: str | None = None
     scale: float = 1.0
     is_enum: bool = False
     is_string: bool = False
@@ -287,47 +288,36 @@ TOTAL_SENSORS: tuple[OwonSensorEntityDescription, ...] = (
 # --- Diagnostic sensors ---
 DIAGNOSTIC_SENSORS: tuple[OwonSensorEntityDescription, ...] = (
     OwonSensorEntityDescription(
+        key="device_id",
+        dp_id="device_id",
+        deviceinfo_key="device_id",
+        translation_key="device_id",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_string=True,
+    ),
+    OwonSensorEntityDescription(
+        key="device_model",
+        dp_id="device_model",
+        deviceinfo_key="model",
+        translation_key="device_model",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_string=True,
+    ),
+    OwonSensorEntityDescription(
+        key="device_sub_model",
+        dp_id="device_sub_model",
+        deviceinfo_key="subModel",
+        translation_key="device_sub_model",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_string=True,
+    ),
+    OwonSensorEntityDescription(
         key="firmware_version",
         dp_id="1",
+        deviceinfo_key="fw_version",
         translation_key="firmware_version",
         entity_category=EntityCategory.DIAGNOSTIC,
         is_string=True,
-    ),
-    OwonSensorEntityDescription(
-        key="sub_firmware_version",
-        dp_id="2",
-        translation_key="sub_firmware_version",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        is_string=True,
-    ),
-    OwonSensorEntityDescription(
-        key="hardware_version",
-        dp_id="3",
-        translation_key="hardware_version",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        is_string=True,
-    ),
-    OwonSensorEntityDescription(
-        key="device_status",
-        dp_id="137",
-        translation_key="device_status",
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    OwonSensorEntityDescription(
-        key="voltage_phase_seq",
-        dp_id="138",
-        translation_key="voltage_phase_seq",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        device_class=SensorDeviceClass.ENUM,
-        options=[
-            "phase_missing",
-            "abc_different",
-            "abc_same",
-            "ab_same_c_different",
-            "bc_same_a_different",
-            "ac_same_b_different",
-        ],
-        is_enum=True,
     ),
 )
 
@@ -576,6 +566,14 @@ class Owon321Sensor(SensorEntity):
     @property
     def native_value(self) -> Any | None:
         """Return the sensor value."""
+        if self.entity_description.deviceinfo_key is not None:
+            info_raw = self._manager.device_info.get(self._device_id, {}).get(
+                self.entity_description.deviceinfo_key
+            )
+            if info_raw is None:
+                return None
+            return str(info_raw)
+
         data = self._manager.devices.get(self._device_id, {})
         raw = data.get(self.entity_description.dp_id)
         if raw is None:
