@@ -107,7 +107,7 @@ def _parse_payload_object(payload_raw: str) -> dict[str, Any] | None:
     """Parse payload object with a tolerant fallback for non-standard JSON."""
     try:
         payload = json.loads(payload_raw)
-    except json.JSONDecodeError, TypeError:
+    except (json.JSONDecodeError, TypeError):
         payload = None
 
     if isinstance(payload, dict):
@@ -139,7 +139,7 @@ def _parse_payload_object(payload_raw: str) -> dict[str, Any] | None:
         try:
             result[key] = json.loads(value_text)
             continue
-        except json.JSONDecodeError, TypeError:
+        except (json.JSONDecodeError, TypeError):
             pass
 
         if (
@@ -349,7 +349,7 @@ class OwonMeterDataManager:
             with_json = False
             try:
                 with_json = isinstance(json.loads(msg.payload), dict)
-            except json.JSONDecodeError, TypeError:
+            except (json.JSONDecodeError, TypeError):
                 with_json = False
             if not with_json:
                 _LOGGER.warning(

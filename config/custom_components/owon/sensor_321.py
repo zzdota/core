@@ -356,7 +356,7 @@ async def async_setup_entry(
             return None
         try:
             return int(raw)
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             return None
 
     def _get_inserted_subcircuits(
@@ -587,13 +587,13 @@ class Owon321Sensor(SensorEntity):
         if self.entity_description.is_enum:
             try:
                 return PHASE_SEQ_MAP.get(int(raw), str(raw))
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 return None
 
         # Numeric sensors with scale factor
         try:
             numeric = float(raw)
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             return None
         if self.entity_description.scale != 1.0:
             return round(numeric * self.entity_description.scale, 3)
