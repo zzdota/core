@@ -113,8 +113,8 @@ def parse_combined_data(raw: Any) -> dict[str, float | None]:
     result["total_current_a"] = round(_u32le(data, 0) * 0.001, 4)
     result["total_power_kw"] = round(_u32le(data, 4) * 0.001, 4)
     result["frequency_hz"] = float(data[8])
-    result["total_energy_consumed_kwh"] = round(_u32le(data, 9) * 0.01, 4)
-    result["total_energy_generated_kwh"] = round(_u32le(data, 13) * 0.01, 4)
+    result["total_energy_consumed_kwh"] = round(_u32le(data, 9) * 0.001, 4)
+    result["total_energy_generated_kwh"] = round(_u32le(data, 13) * 0.001, 4)
     return result
 
 
@@ -144,7 +144,7 @@ def parse_subcircuit_power_current(raw: Any) -> dict[int, dict[str, float]]:
 def parse_subcircuit_energy(raw: Any) -> dict[int, dict[str, float]]:
     """Parse DP 126 – sub-circuit consumed & generated energy.
 
-    Each record: 1B circuit_id + 4B consumed (0.01kWh) + 4B generated (0.01kWh)
+    Each record: 1B circuit_id + 4B consumed (0.001kWh) + 4B generated (0.001kWh)
     Returns: {circuit_id: {"energy_consumed_kwh": ..., "energy_generated_kwh": ...}}
     """
     result: dict[int, dict[str, float]] = {}
@@ -157,8 +157,8 @@ def parse_subcircuit_energy(raw: Any) -> dict[int, dict[str, float]]:
         if offset + 9 > len(data):
             break
         cid = data[offset]
-        consumed = round(_u32le(data, offset + 1) * 0.01, 4)
-        generated = round(_u32le(data, offset + 5) * 0.01, 4)
+        consumed = round(_u32le(data, offset + 1) * 0.001, 4)
+        generated = round(_u32le(data, offset + 5) * 0.001, 4)
         result[cid] = {
             "energy_consumed_kwh": consumed,
             "energy_generated_kwh": generated,

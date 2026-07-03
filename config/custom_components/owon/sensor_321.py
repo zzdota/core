@@ -140,7 +140,16 @@ PHASE_A_SENSORS: tuple[OwonSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        scale=0.01,
+        scale=0.001,
+    ),
+    OwonSensorEntityDescription(
+        key="reverse_energy_a",
+        dp_id="107",
+        translation_key="reverse_energy_a",
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        scale=0.001,
     ),
 )
 
@@ -187,7 +196,16 @@ PHASE_B_SENSORS: tuple[OwonSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        scale=0.01,
+        scale=0.001,
+    ),
+    OwonSensorEntityDescription(
+        key="reverse_energy_b",
+        dp_id="117",
+        translation_key="reverse_energy_b",
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        scale=0.001,
     ),
 )
 
@@ -234,7 +252,16 @@ PHASE_C_SENSORS: tuple[OwonSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        scale=0.01,
+        scale=0.001,
+    ),
+    OwonSensorEntityDescription(
+        key="reverse_energy_c",
+        dp_id="127",
+        translation_key="reverse_energy_c",
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        scale=0.001,
     ),
 )
 
@@ -247,7 +274,7 @@ TOTAL_SENSORS: tuple[OwonSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        scale=0.01,
+        scale=0.001,
     ),
     OwonSensorEntityDescription(
         key="current_total",
@@ -265,6 +292,15 @@ TOTAL_SENSORS: tuple[OwonSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
+    ),
+    OwonSensorEntityDescription(
+        key="reverse_energy_total",
+        dp_id="139",
+        translation_key="reverse_energy_total",
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        scale=0.001,
     ),
     OwonSensorEntityDescription(
         key="frequency",
@@ -356,7 +392,7 @@ async def async_setup_entry(
             return None
         try:
             return int(raw)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return None
 
     def _get_inserted_subcircuits(
@@ -587,13 +623,13 @@ class Owon321Sensor(SensorEntity):
         if self.entity_description.is_enum:
             try:
                 return PHASE_SEQ_MAP.get(int(raw), str(raw))
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 return None
 
         # Numeric sensors with scale factor
         try:
             numeric = float(raw)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return None
         if self.entity_description.scale != 1.0:
             return round(numeric * self.entity_description.scale, 3)
