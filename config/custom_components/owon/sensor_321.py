@@ -708,7 +708,12 @@ class Owon341Sensor(SensorEntity):
         data = self._manager.devices.get(self._device_id, {})
         # Expand raw hex DPs into named flat keys on every read (lightweight)
         expanded = expand_341_payload(data)
-        raw = expanded.get(self.entity_description.data_key)
+        # Persist expanded keys so partial payloads do not clear previous values.
+        if expanded:
+            data.update(expanded)
+        raw = expanded.get(
+            self.entity_description.data_key, data.get(self.entity_description.data_key)
+        )
         if raw is None:
             return None
         if self.entity_description.is_string:

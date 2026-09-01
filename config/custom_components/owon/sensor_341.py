@@ -90,7 +90,7 @@ def parse_phase_data(raw: Any) -> dict[str, float | None]:
     result["voltage_v"] = round(_u32le(data, 0) * 0.1, 2)
     result["current_a"] = round(_u32le(data, 4) * 0.001, 4)
     result["power_kw"] = round(_u32le(data, 8) * 0.001, 4)
-    result["power_factor_pct"] = round(data[12] * 0.01, 4)
+    result["power_factor_pct"] = float(data[12])
     return result
 
 
@@ -229,27 +229,19 @@ def expand_341_payload(dp_data: dict[str, Any]) -> dict[str, Any]:
         expanded["341_energy_consumed_total"] = parsed["total_energy_consumed_kwh"]
         expanded["341_energy_generated_total"] = parsed["total_energy_generated_kwh"]
 
-    # --- DP 125: sub-circuit current & power (default 0 when DP absent) ---
+    # --- DP 125: sub-circuit current & power ---
     if "125" in dp_data:
         sub_power_current = parse_subcircuit_power_current(dp_data["125"])
-    else:
-        sub_power_current = {}
-    for cid in range(1, 17):
-        vals = sub_power_current.get(cid, {"power_kw": 0.0, "current_a": 0.0})
-        expanded[f"341_sub{cid}_power"] = vals["power_kw"]
-        expanded[f"341_sub{cid}_current"] = vals["current_a"]
+        for cid, vals in sub_power_current.items():
+            expanded[f"341_sub{cid}_power"] = vals["power_kw"]
+            expanded[f"341_sub{cid}_current"] = vals["current_a"]
 
-    # --- DP 126: sub-circuit energy (default 0 when DP absent) ---
+    # --- DP 126: sub-circuit energy ---
     if "126" in dp_data:
         sub_energy = parse_subcircuit_energy(dp_data["126"])
-    else:
-        sub_energy = {}
-    for cid in range(1, 17):
-        vals = sub_energy.get(
-            cid, {"energy_consumed_kwh": 0.0, "energy_generated_kwh": 0.0}
-        )
-        expanded[f"341_sub{cid}_energy_consumed"] = vals["energy_consumed_kwh"]
-        expanded[f"341_sub{cid}_energy_generated"] = vals["energy_generated_kwh"]
+        for cid, vals in sub_energy.items():
+            expanded[f"341_sub{cid}_energy_consumed"] = vals["energy_consumed_kwh"]
+            expanded[f"341_sub{cid}_energy_generated"] = vals["energy_generated_kwh"]
 
     # --- DP 127: sub-circuit phase ---
     if "127" in dp_data:
@@ -489,7 +481,7 @@ def get_341_subcircuit_sensors(
     """Return sub-circuit sensor descriptions for PCT341, grouped by circuit.
 
     For each circuit the order is: power, current, energy consumed, energy generated.
-    DP125 supplies power/current; DP126 supplies energy (defaults to 0 when absent).
+    DP125 supplies power/current; DP126 supplies energy.
     """
     sensors: list[Owon341SensorEntityDescription] = []
     if circuit_ids is None:
