@@ -1,14 +1,12 @@
 """Local backup support for Core and Container installations."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import AsyncIterator, Callable, Coroutine
 import copy
 from dataclasses import dataclass, replace
 from io import BytesIO
 import json
-from pathlib import Path, PurePath
+from pathlib import Path, PurePath, PureWindowsPath
 from queue import SimpleQueue
 import tarfile
 import threading
@@ -22,6 +20,7 @@ from securetar import (
     SecureTarFile,
     SecureTarReadError,
     SecureTarRootKeyContext,
+    get_archive_max_ciphertext_size,
 )
 
 from homeassistant.core import HomeAssistant
@@ -35,7 +34,7 @@ from homeassistant.util.async_iterator import (
 from homeassistant.util.json import JsonObjectType, json_loads_object
 
 from .const import BUF_SIZE, LOGGER, SECURETAR_CREATE_VERSION
-from .models import AddonInfo, AgentBackup, Folder
+from .models import AddonInfo, AgentBackup, Folder, InvalidBackupFilename
 
 
 class DecryptError(HomeAssistantError):
@@ -110,6 +109,13 @@ def read_backup(backup_path: Path) -> AgentBackup:
         extra_metadata = cast(dict[str, bool | str], data.get("extra", {}))
         date = extra_metadata.get("supervisor.backup_request_date", data["date"])
 
+        name = cast(str, data["name"])
+        # The name is used to derive the on-disk filename via suggested_filename;
+        # reject anything that could escape the backup directory.
+        safe_name = PureWindowsPath(name).name
+        if safe_name != name or name in ("", ".", ".."):
+            raise InvalidBackupFilename(f"Invalid backup name: {name!r}")
+
         return AgentBackup(
             addons=addons,
             backup_id=cast(str, data["slug"]),
@@ -119,7 +125,7 @@ def read_backup(backup_path: Path) -> AgentBackup:
             folders=folders,
             homeassistant_included=homeassistant_included,
             homeassistant_version=homeassistant_version,
-            name=cast(str, data["name"]),
+            name=name,
             protected=cast(bool, data.get("protected", False)),
             size=backup_path.stat().st_size,
         )
@@ -383,9 +389,12 @@ def _encrypt_backup(
         if prefix not in expected_archives:
             LOGGER.debug("Unknown inner tar file %s will not be encrypted", obj.name)
             continue
-        output_archive.import_tar(
-            input_tar.extractfile(obj), obj, derived_key_id=inner_tar_idx
-        )
+        if (fileobj := input_tar.extractfile(obj)) is None:
+            LOGGER.debug(
+                "Non regular inner tar file %s will not be encrypted", obj.name
+            )
+            continue
+        output_archive.import_tar(fileobj, obj, derived_key_id=inner_tar_idx)
         inner_tar_idx += 1
 
 
@@ -419,7 +428,7 @@ class _CipherBackupStreamer:
         hass: HomeAssistant,
         backup: AgentBackup,
         open_stream: Callable[[], Coroutine[Any, Any, AsyncIterator[bytes]]],
-        password: str | None,
+        password: str,
     ) -> None:
         """Initialize."""
         self._workers: list[_CipherWorkerStatus] = []
@@ -431,7 +440,9 @@ class _CipherBackupStreamer:
 
     def size(self) -> int:
         """Return the maximum size of the decrypted or encrypted backup."""
-        return self._backup.size + self._num_tar_files() * tarfile.RECORDSIZE
+        return get_archive_max_ciphertext_size(
+            self._backup.size, SECURETAR_CREATE_VERSION, self._num_tar_files()
+        )
 
     def _num_tar_files(self) -> int:
         """Return the number of inner tar files."""
@@ -496,8 +507,18 @@ class EncryptedBackupStreamer(_CipherBackupStreamer):
         return replace(self._backup, protected=True, size=self.size())
 
 
+async def iter_upload_chunks(contents: aiohttp.BodyPartReader) -> AsyncIterator[bytes]:
+    """Yield chunks of an uploaded file.
+
+    Iterating a BodyPartReader reads the whole part into memory and enforces the
+    request's client_max_size limit; reading it in chunks does neither.
+    """
+    while chunk := await contents.read_chunk(BUF_SIZE):
+        yield chunk
+
+
 async def receive_file(
-    hass: HomeAssistant, contents: aiohttp.BodyPartReader, path: Path
+    hass: HomeAssistant, stream: AsyncIterator[bytes], path: Path
 ) -> None:
     """Receive a file from a stream and write it to a file."""
     queue: SimpleQueue[tuple[bytes, asyncio.Future[None] | None] | None] = SimpleQueue()
@@ -515,10 +536,10 @@ async def receive_file(
     fut: asyncio.Future[None] | None = None
     try:
         fut = hass.async_add_executor_job(_sync_queue_consumer)
-        megabytes_sending = 0
-        while chunk := await contents.read_chunk(BUF_SIZE):
-            megabytes_sending += 1
-            if megabytes_sending % 5 != 0:
+        chunks_sent = 0
+        async for chunk in stream:
+            chunks_sent += 1
+            if chunks_sent % 5 != 0:
                 queue.put_nowait((chunk, None))
                 continue
 
@@ -531,8 +552,9 @@ async def receive_file(
             if fut.done():
                 # The executor job failed
                 break
-
-        queue.put_nowait(None)  # terminate queue consumer
     finally:
+        # Always terminate the queue consumer, also if the stream raised or the
+        # task was cancelled.
+        queue.put_nowait(None)
         if fut is not None:
             await fut

@@ -1,12 +1,11 @@
 """Coordinator for transmission integration."""
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import partial
 import logging
+from typing import override
 
 import transmission_rpc
 from transmission_rpc.session import SessionStats
@@ -65,12 +64,12 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
         self.api = api
         self.host = entry.data[CONF_HOST]
         self._session: transmission_rpc.Session | None = None
-        self.port_forwarding: bool | None = None
         self._all_torrents: list[transmission_rpc.Torrent] = []
         self._completed_torrents: list[transmission_rpc.Torrent] = []
         self._started_torrents: list[transmission_rpc.Torrent] = []
         self._event_listeners: dict[str, EventCallback] = {}
         self.torrents: list[transmission_rpc.Torrent] = []
+        self.download_dir_free_space: int | None = None
         super().__init__(
             hass,
             config_entry=entry,
@@ -106,6 +105,7 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
         for listener in list(self._event_listeners.values()):
             listener(event)
 
+    @override
     async def _async_update_data(self) -> SessionStats:
         """Update transmission data."""
         data = await self.hass.async_add_executor_job(self.update)
@@ -122,9 +122,16 @@ class TransmissionDataUpdateCoordinator(DataUpdateCoordinator[SessionStats]):
             data = self.api.session_stats()
             self.torrents = self.api.get_torrents()
             self._session = self.api.get_session()
-            self.port_forwarding = self.api.port_test()
         except transmission_rpc.TransmissionError as err:
             raise UpdateFailed("Unable to connect to Transmission client") from err
+
+        try:
+            self.download_dir_free_space = self.api.free_space(
+                self._session.download_dir
+            )
+        except (transmission_rpc.TransmissionError, KeyError) as err:
+            _LOGGER.debug("Unable to fetch download directory free space: %s", err)
+            self.download_dir_free_space = None
 
         return data
 
