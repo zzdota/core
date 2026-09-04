@@ -7,7 +7,10 @@
   "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && script/setup",
   "postStartCommand": "script/bootstrap",
   "containerEnv": {
-    "PYTHONASYNCIODEBUG": "1"
+    "PYTHONASYNCIODEBUG": "1",
+    "HTTP_PROXY": "http://host.docker.internal:7897",
+    "HTTPS_PROXY": "http://host.docker.internal:7897",
+    "ALL_PROXY": "http://host.docker.internal:7897"
   },
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {}
