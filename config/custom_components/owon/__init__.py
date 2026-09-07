@@ -1,7 +1,6 @@
-"""The OWON meter WiFi MQTT integration (PCT321 / PCT341)."""
+"""The OWON meter WiFi MQTT integration (PCT321 / PCT341 / PC4713)."""
 
-from __future__ import annotations
-
+from itertools import count
 import json
 import logging
 from typing import Any
@@ -18,8 +17,10 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DEFAULT_DEVICE_MODEL,
     DEVICE_MODEL_341,
+    DEVICE_MODEL_4713,
     DEVICE_MODEL_PREFIXES,
     DEVICE_OFFLINE_TIMEOUT,
+    DEVICE_OFFLINE_TIMEOUT_4713,
     DEVICEINFO_QUERY_INTERVAL,
     DOMAIN,
     DP_QUERY_INTERVAL,
@@ -29,6 +30,9 @@ from .const import (
     MQTT_TOPIC_REPLY,
     MQTT_TOPIC_REPORT,
     OWON_APP_CLIENT_ID,
+    P4713_COMMAND_UPDATE,
+    P4713_TYPE_DEVICE_INFO,
+    P4713_TYPE_MEASURE_ENERGY,
     PCT341_QUERY_DPS,
     QUERY_DEVICEINFO_PAYLOAD,
     SIGNAL_DEVICE_MODEL_CHANGED,
@@ -155,6 +159,15 @@ def _parse_payload_object(payload_raw: str) -> dict[str, Any] | None:
     return result
 
 
+def _is_structured_payload(payload: Any) -> bool:
+    """Detect PC4713-style structured payloads ({type, command, ...}).
+
+    Legacy PCT321/PCT341 payloads are flat DP maps ({"101": ...}) and never
+    carry a "type" key, so this guard leaves the legacy path untouched.
+    """
+    return isinstance(payload, dict) and isinstance(payload.get("type"), str)
+
+
 class OwonMeterDataManager:
     """Manage OWON meter device data from MQTT."""
 
@@ -173,6 +186,12 @@ class OwonMeterDataManager:
         self.deviceinfo_queried: dict[str, Any] = {}
         # last time a missing DP query was sent per device/dp
         self.dp_queried: dict[str, dict[str, Any]] = {}
+        # devices identified as speaking the structured PC4713 protocol
+        self.structured_devices: set[str] = set()
+        # devices for which the initial PC4713 queries were already sent
+        self.initial_query_done: set[str] = set()
+        # monotonically increasing sequence numbers for PC4713 requests
+        self._sequence_counter = count(1)
 
     @staticmethod
     def _resolve_model(model_str: str) -> str:
@@ -257,6 +276,206 @@ class OwonMeterDataManager:
         await mqtt.async_publish(self.hass, topic, payload, qos, retain)
         _LOGGER.debug("Sent DP%s query to %s via control topic", dp, device_id)
 
+    # ------------------------------------------------------------------ #
+    # PC4713 structured protocol support.
+    # Only reachable for payloads carrying a "type" key; the legacy
+    # PCT321/PCT341 paths above remain byte-for-byte unchanged.
+    # ------------------------------------------------------------------ #
+
+    def _next_sequence(self) -> int:
+        """Return the next sequence number for PC4713 requests."""
+        return next(self._sequence_counter)
+
+    async def async_query_4713_device_info(self, device_id: str) -> None:
+        """Ask a PC4713 device for its device info (structured protocol)."""
+        topic = MQTT_TOPIC_CONTROL_TPL.format(
+            device_id=device_id, app_client_id=OWON_APP_CLIENT_ID
+        )
+        payload = json.dumps(
+            {
+                "type": P4713_TYPE_DEVICE_INFO,
+                "command": "get",
+                "sequence": self._next_sequence(),
+            }
+        )
+        _log_mqtt_tx(topic, payload, 0, False)
+        await mqtt.async_publish(self.hass, topic, payload, 0, False)
+        _LOGGER.debug("Sent PC4713 device.info query to %s", device_id)
+
+    async def async_query_energy(self, device_id: str) -> None:
+        """Ask a PC4713 device for a full measurement data report."""
+        topic = MQTT_TOPIC_CONTROL_TPL.format(
+            device_id=device_id, app_client_id=OWON_APP_CLIENT_ID
+        )
+        payload = json.dumps(
+            {
+                "type": P4713_TYPE_MEASURE_ENERGY,
+                "command": "get",
+                "sequence": self._next_sequence(),
+            }
+        )
+        _log_mqtt_tx(topic, payload, 0, False)
+        await mqtt.async_publish(self.hass, topic, payload, 0, False)
+        _LOGGER.debug("Sent PC4713 measure.energy query to %s", device_id)
+
+    @callback
+    def _maybe_initial_query_4713(self, device_id: str) -> None:
+        """Run the one-time initial PC4713 queries for a discovered device."""
+        if device_id in self.initial_query_done:
+            return
+        self.initial_query_done.add(device_id)
+        # The initial queries already include device info; record the query
+        # time so the throttled re-query loop does not duplicate it at once.
+        self.deviceinfo_queried[device_id] = dt_util.utcnow()
+        self.hass.async_create_task(self.async_query_4713_device_info(device_id))
+        self.hass.async_create_task(self.async_query_energy(device_id))
+        _LOGGER.info("Sent initial PC4713 queries to %s", device_id)
+
+    @callback
+    def _apply_4713_device_info(self, device_id: str, data: dict[str, Any]) -> None:
+        """Store PC4713 device info and update registries/signals."""
+        info = {str(key): value for key, value in data.items()}
+        # Map "version" onto "fw_version" so existing consumers
+        # (diag sensors, registry updates) work unchanged.
+        version = info.get("version")
+        if version is not None:
+            info.setdefault("fw_version", version)
+        self.device_info[device_id] = info
+        self.device_info[device_id]["device_id"] = device_id
+        self.model_confirmed.add(device_id)
+
+        raw_model = str(info.get("model", ""))
+        resolved = self._resolve_model(raw_model) if raw_model else DEVICE_MODEL_4713
+        if resolved != DEVICE_MODEL_4713:
+            # Structured payloads only come from 4713-family devices;
+            # unknown model strings still resolve to 4713.
+            resolved = DEVICE_MODEL_4713
+        if self.device_models.get(device_id) != resolved:
+            self.device_models[device_id] = resolved
+            _LOGGER.info(
+                "OWON device %s model identified as %s (raw: '%s')",
+                device_id,
+                resolved,
+                raw_model,
+            )
+            async_dispatcher_send(
+                self.hass, f"{SIGNAL_DEVICE_MODEL_CHANGED}_{device_id}"
+            )
+
+        fw_version = info.get("fw_version")
+        if fw_version:
+            dev_reg = dr.async_get(self.hass)
+            device_entry = dev_reg.async_get_device(identifiers={(DOMAIN, device_id)})
+            if device_entry is not None:
+                dev_reg.async_update_device(device_entry.id, sw_version=str(fw_version))
+        async_dispatcher_send(self.hass, f"{SIGNAL_DEVICE_UPDATE}_{device_id}")
+
+    @callback
+    def _handle_structured_report(self, device_id: str, payload: dict[str, Any]) -> None:
+        """Handle a structured PC4713 payload on the report topic."""
+        msg_type = str(payload.get("type"))
+        command = payload.get("command")
+        arguments = payload.get("arguments")
+        if not isinstance(arguments, dict):
+            arguments = {}
+
+        is_new = device_id not in self.devices
+        if is_new:
+            self.devices[device_id] = {}
+            _LOGGER.info(
+                "Discovered new OWON meter device: %s (PC4713 protocol)", device_id
+            )
+        self.last_seen[device_id] = dt_util.utcnow()
+
+        # Structured payloads are only produced by 4713-family devices, so the
+        # model can be resolved immediately without waiting for device info.
+        self.structured_devices.add(device_id)
+        if self.device_models.get(device_id) != DEVICE_MODEL_4713:
+            self.device_models[device_id] = DEVICE_MODEL_4713
+            if not is_new:
+                async_dispatcher_send(
+                    self.hass, f"{SIGNAL_DEVICE_MODEL_CHANGED}_{device_id}"
+                )
+
+        if msg_type == P4713_TYPE_DEVICE_INFO and command == P4713_COMMAND_UPDATE:
+            self._apply_4713_device_info(device_id, arguments)
+        elif msg_type == P4713_TYPE_MEASURE_ENERGY and command == P4713_COMMAND_UPDATE:
+            data = arguments.get("data")
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    self.devices[device_id][str(key)] = value
+                _LOGGER.debug(
+                    "Updated 4713 device %s with %s datapoints",
+                    device_id,
+                    len(data),
+                )
+            async_dispatcher_send(self.hass, f"{SIGNAL_DEVICE_UPDATE}_{device_id}")
+        else:
+            _LOGGER.debug(
+                "Ignoring structured report type=%s command=%s from %s",
+                msg_type,
+                command,
+                device_id,
+            )
+
+        if is_new:
+            async_dispatcher_send(self.hass, SIGNAL_NEW_DEVICE, device_id)
+
+        self._maybe_initial_query_4713(device_id)
+
+        # Re-query device info (PC4713 style) until the model is confirmed.
+        if device_id not in self.model_confirmed:
+            last_q = self.deviceinfo_queried.get(device_id)
+            now = dt_util.utcnow()
+            if last_q is None or (now - last_q) >= DEVICEINFO_QUERY_INTERVAL:
+                self.deviceinfo_queried[device_id] = now
+                self.hass.async_create_task(
+                    self.async_query_4713_device_info(device_id)
+                )
+
+    @callback
+    def _handle_structured_reply(self, device_id: str, payload: dict[str, Any]) -> None:
+        """Handle a structured PC4713 payload on the reply topic."""
+        msg_type = str(payload.get("type"))
+        response = payload.get("response")
+        if not isinstance(response, dict):
+            _LOGGER.debug(
+                "Ignoring structured reply without response object from %s (%s)",
+                device_id,
+                msg_type,
+            )
+            return
+
+        self.last_seen[device_id] = dt_util.utcnow()
+        code = response.get("code")
+        data = response.get("data")
+        if code not in (0, None) or not isinstance(data, dict):
+            _LOGGER.debug(
+                "Structured reply from %s type=%s code=%s without applicable data",
+                device_id,
+                msg_type,
+                code,
+            )
+            return
+
+        if msg_type == P4713_TYPE_DEVICE_INFO:
+            self._apply_4713_device_info(device_id, data)
+        elif msg_type == P4713_TYPE_MEASURE_ENERGY:
+            if device_id not in self.devices:
+                self.devices[device_id] = {}
+            for key, value in data.items():
+                self.devices[device_id][str(key)] = value
+            _LOGGER.debug(
+                "Updated 4713 device %s with %s queried datapoints",
+                device_id,
+                len(data),
+            )
+            async_dispatcher_send(self.hass, f"{SIGNAL_DEVICE_UPDATE}_{device_id}")
+        else:
+            _LOGGER.debug(
+                "Ignoring structured reply type=%s from %s", msg_type, device_id
+            )
+
     @callback
     def _maybe_query_missing_dps(self, device_id: str) -> None:
         """Actively query missing PCT341 DPs with interval throttling."""
@@ -296,10 +515,16 @@ class OwonMeterDataManager:
             return
 
         payload = _parse_payload_object(msg.payload)
-        if payload is None or not isinstance(payload, dict):
+        if payload is None:
             _LOGGER.warning(
                 "Invalid reply payload from device %s: %s", device_id, msg.payload
             )
+            return
+
+        # PC4713 structured replies ({type, command, response}) take a
+        # dedicated path; legacy flat DP replies are handled below.
+        if _is_structured_payload(payload):
+            self._handle_structured_reply(device_id, payload)
             return
 
         if device_id not in self.devices:
@@ -319,9 +544,14 @@ class OwonMeterDataManager:
     def is_device_available(self, device_id: str) -> bool:
         """Return whether a device is still considered online."""
         last_seen = self.last_seen.get(device_id)
-        return last_seen is not None and (
-            dt_util.utcnow() - last_seen <= DEVICE_OFFLINE_TIMEOUT
+        if last_seen is None:
+            return False
+        timeout = (
+            DEVICE_OFFLINE_TIMEOUT_4713
+            if self.get_device_model(device_id) == DEVICE_MODEL_4713
+            else DEVICE_OFFLINE_TIMEOUT
         )
+        return dt_util.utcnow() - last_seen <= timeout
 
     @callback
     def handle_message(self, msg: ReceiveMessage) -> None:
@@ -364,6 +594,12 @@ class OwonMeterDataManager:
                 device_id,
                 type(payload).__name__,
             )
+            return
+
+        # PC4713 structured reports ({type, command, arguments}) take a
+        # dedicated path; legacy flat DP reports are handled below.
+        if _is_structured_payload(payload):
+            self._handle_structured_report(device_id, payload)
             return
 
         summary_keys = sorted(payload.keys(), key=str)

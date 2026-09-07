@@ -67,7 +67,55 @@
           "bc_same_a_different": "B, C same; A different",
           "ac_same_b_different": "A, C same; B different"
         }
-      }
+      },
+      "voltage_avg": { "name": "Average phase voltage" },
+      "apparent_power_total": { "name": "Total apparent power" },
+      "apparent_power_a": { "name": "Phase A apparent power" },
+      "apparent_power_b": { "name": "Phase B apparent power" },
+      "apparent_power_c": { "name": "Phase C apparent power" },
+      "reactive_power_total": { "name": "Total reactive power" },
+      "reactive_power_a": { "name": "Phase A reactive power" },
+      "reactive_power_b": { "name": "Phase B reactive power" },
+      "reactive_power_c": { "name": "Phase C reactive power" },
+      "power_factor_total": { "name": "Total power factor" },
+      "active_import_energy_total": { "name": "Total active import energy" },
+      "active_import_energy_a": { "name": "Phase A active import energy" },
+      "active_import_energy_b": { "name": "Phase B active import energy" },
+      "active_import_energy_c": { "name": "Phase C active import energy" },
+      "active_export_energy_total": { "name": "Total active export energy" },
+      "active_export_energy_a": { "name": "Phase A active export energy" },
+      "active_export_energy_b": { "name": "Phase B active export energy" },
+      "active_export_energy_c": { "name": "Phase C active export energy" },
+      "apparent_import_energy_total": {
+        "name": "Total apparent import energy"
+      },
+      "apparent_import_energy_a": { "name": "Phase A apparent import energy" },
+      "apparent_import_energy_b": { "name": "Phase B apparent import energy" },
+      "apparent_import_energy_c": { "name": "Phase C apparent import energy" },
+      "apparent_export_energy_total": {
+        "name": "Total apparent export energy"
+      },
+      "apparent_export_energy_a": { "name": "Phase A apparent export energy" },
+      "apparent_export_energy_b": { "name": "Phase B apparent export energy" },
+      "apparent_export_energy_c": { "name": "Phase C apparent export energy" },
+      "reactive_energy_q1_total": { "name": "Total reactive energy Q1" },
+      "reactive_energy_q1_a": { "name": "Phase A reactive energy Q1" },
+      "reactive_energy_q1_b": { "name": "Phase B reactive energy Q1" },
+      "reactive_energy_q1_c": { "name": "Phase C reactive energy Q1" },
+      "reactive_energy_q2_total": { "name": "Total reactive energy Q2" },
+      "reactive_energy_q2_a": { "name": "Phase A reactive energy Q2" },
+      "reactive_energy_q2_b": { "name": "Phase B reactive energy Q2" },
+      "reactive_energy_q2_c": { "name": "Phase C reactive energy Q2" },
+      "reactive_energy_q3_total": { "name": "Total reactive energy Q3" },
+      "reactive_energy_q3_a": { "name": "Phase A reactive energy Q3" },
+      "reactive_energy_q3_b": { "name": "Phase B reactive energy Q3" },
+      "reactive_energy_q3_c": { "name": "Phase C reactive energy Q3" },
+      "reactive_energy_q4_total": { "name": "Total reactive energy Q4" },
+      "reactive_energy_q4_a": { "name": "Phase A reactive energy Q4" },
+      "reactive_energy_q4_b": { "name": "Phase B reactive energy Q4" },
+      "reactive_energy_q4_c": { "name": "Phase C reactive energy Q4" },
+      "device_name": { "name": "6 Device name" },
+      "meter_event": { "name": "7 Meter event" }
     }
   }
 }

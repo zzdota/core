@@ -65,7 +65,83 @@
           "bc_same_a_different": "B y C iguales; A diferente",
           "ac_same_b_different": "A y C iguales; B diferente"
         }
-      }
+      },
+      "voltage_avg": { "name": "Voltaje de fase promedio" },
+      "apparent_power_total": { "name": "Potencia aparente total" },
+      "apparent_power_a": { "name": "Potencia aparente de fase A" },
+      "apparent_power_b": { "name": "Potencia aparente de fase B" },
+      "apparent_power_c": { "name": "Potencia aparente de fase C" },
+      "reactive_power_total": { "name": "Potencia reactiva total" },
+      "reactive_power_a": { "name": "Potencia reactiva de fase A" },
+      "reactive_power_b": { "name": "Potencia reactiva de fase B" },
+      "reactive_power_c": { "name": "Potencia reactiva de fase C" },
+      "power_factor_total": { "name": "Factor de potencia total" },
+      "active_import_energy_total": {
+        "name": "Energia activa importada total"
+      },
+      "active_import_energy_a": {
+        "name": "Energia activa importada de fase A"
+      },
+      "active_import_energy_b": {
+        "name": "Energia activa importada de fase B"
+      },
+      "active_import_energy_c": {
+        "name": "Energia activa importada de fase C"
+      },
+      "active_export_energy_total": {
+        "name": "Energia activa exportada total"
+      },
+      "active_export_energy_a": {
+        "name": "Energia activa exportada de fase A"
+      },
+      "active_export_energy_b": {
+        "name": "Energia activa exportada de fase B"
+      },
+      "active_export_energy_c": {
+        "name": "Energia activa exportada de fase C"
+      },
+      "apparent_import_energy_total": {
+        "name": "Energia aparente importada total"
+      },
+      "apparent_import_energy_a": {
+        "name": "Energia aparente importada de fase A"
+      },
+      "apparent_import_energy_b": {
+        "name": "Energia aparente importada de fase B"
+      },
+      "apparent_import_energy_c": {
+        "name": "Energia aparente importada de fase C"
+      },
+      "apparent_export_energy_total": {
+        "name": "Energia aparente exportada total"
+      },
+      "apparent_export_energy_a": {
+        "name": "Energia aparente exportada de fase A"
+      },
+      "apparent_export_energy_b": {
+        "name": "Energia aparente exportada de fase B"
+      },
+      "apparent_export_energy_c": {
+        "name": "Energia aparente exportada de fase C"
+      },
+      "reactive_energy_q1_total": { "name": "Energia reactiva Q1 total" },
+      "reactive_energy_q1_a": { "name": "Energia reactiva Q1 de fase A" },
+      "reactive_energy_q1_b": { "name": "Energia reactiva Q1 de fase B" },
+      "reactive_energy_q1_c": { "name": "Energia reactiva Q1 de fase C" },
+      "reactive_energy_q2_total": { "name": "Energia reactiva Q2 total" },
+      "reactive_energy_q2_a": { "name": "Energia reactiva Q2 de fase A" },
+      "reactive_energy_q2_b": { "name": "Energia reactiva Q2 de fase B" },
+      "reactive_energy_q2_c": { "name": "Energia reactiva Q2 de fase C" },
+      "reactive_energy_q3_total": { "name": "Energia reactiva Q3 total" },
+      "reactive_energy_q3_a": { "name": "Energia reactiva Q3 de fase A" },
+      "reactive_energy_q3_b": { "name": "Energia reactiva Q3 de fase B" },
+      "reactive_energy_q3_c": { "name": "Energia reactiva Q3 de fase C" },
+      "reactive_energy_q4_total": { "name": "Energia reactiva Q4 total" },
+      "reactive_energy_q4_a": { "name": "Energia reactiva Q4 de fase A" },
+      "reactive_energy_q4_b": { "name": "Energia reactiva Q4 de fase B" },
+      "reactive_energy_q4_c": { "name": "Energia reactiva Q4 de fase C" },
+      "device_name": { "name": "6 Nombre del dispositivo" },
+      "meter_event": { "name": "7 Evento del medidor" }
     }
   }
 }

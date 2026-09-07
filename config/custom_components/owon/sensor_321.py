@@ -1,7 +1,5 @@
 """Sensor platform for OWON Meter (PCT321 / PCT341) WiFi MQTT."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import datetime
 import logging
@@ -38,6 +36,7 @@ from . import OwonMeterConfigEntry
 from .const import (
     AVAILABILITY_CHECK_INTERVAL,
     DEVICE_MODEL_341,
+    DEVICE_MODEL_4713,
     DOMAIN,
     MANUFACTURER,
     MODEL,
@@ -52,6 +51,7 @@ from .sensor_341 import (
     expand_341_payload,
     get_341_subcircuit_sensors,
 )
+from .sensor_4713 import ALL_4713_SENSORS, Owon4713Sensor
 
 _LOGGER = logging.getLogger(__name__)
 _SUBCIRCUIT_KEY_RE = re.compile(
@@ -450,6 +450,17 @@ async def async_setup_entry(
                 device_id,
                 bitmap,
                 list(inserted_subcircuits),
+            )
+        elif device_model == DEVICE_MODEL_4713:
+            device_ct_bitmap_used.pop(device_id, None)
+            entities = [
+                Owon4713Sensor(device_id, description, manager)
+                for description in ALL_4713_SENSORS
+            ]
+            _LOGGER.info(
+                "Creating %s sensor entities for PC4713 device %s",
+                len(entities),
+                device_id,
             )
         else:
             _prune_stale_341_subcircuit_registry_entries(
