@@ -58,6 +58,10 @@ DEVICE_OFFLINE_TIMEOUT_4713 = timedelta(seconds=1200)
 AVAILABILITY_CHECK_INTERVAL = timedelta(seconds=60)
 # How often to re-query deviceinfo when the model is still unknown
 DEVICEINFO_QUERY_INTERVAL = timedelta(seconds=60)
+# PC4713: re-query device.info only while a real device name is still
+# missing, and stop after this many total attempts (a firmware that never
+# answers must not be polled forever).
+DEVICEINFO_QUERY_MAX_ATTEMPTS = 10
 DP_QUERY_INTERVAL = timedelta(seconds=60)
 
 MANUFACTURER = "OWON"

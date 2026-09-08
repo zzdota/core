@@ -60,6 +60,11 @@ def parse_meter_event(raw: Any) -> str:
     return ", ".join(events) if events else f"unknown({bitmap})"
 
 
+def meter_fallback_name(device_id: str) -> str:
+    """Protocol default device name: METER_{last 6 characters of the SN}."""
+    return f"METER_{device_id[-6:]}"
+
+
 @dataclass(frozen=True, kw_only=True)
 class Owon4713SensorEntityDescription(SensorEntityDescription):
     """Describe a PC4713 sensor entity."""
@@ -274,7 +279,7 @@ DIAG_4713_SENSORS: tuple[Owon4713SensorEntityDescription, ...] = (
         key="4713_device_id",
         data_key="device_id",
         deviceinfo_key="device_id",
-        translation_key="device_id",
+        translation_key="meter_device_id",
         entity_category=EntityCategory.DIAGNOSTIC,
         is_string=True,
     ),
@@ -282,7 +287,15 @@ DIAG_4713_SENSORS: tuple[Owon4713SensorEntityDescription, ...] = (
         key="4713_device_model",
         data_key="device_model",
         deviceinfo_key="model",
-        translation_key="device_model",
+        translation_key="meter_device_model",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_string=True,
+    ),
+    Owon4713SensorEntityDescription(
+        key="4713_device_sub_model",
+        data_key="device_sub_model",
+        deviceinfo_key="subModel",
+        translation_key="meter_device_sub_model",
         entity_category=EntityCategory.DIAGNOSTIC,
         is_string=True,
     ),
@@ -290,7 +303,7 @@ DIAG_4713_SENSORS: tuple[Owon4713SensorEntityDescription, ...] = (
         key="4713_firmware_version",
         data_key="firmware_version",
         deviceinfo_key="fw_version",
-        translation_key="firmware_version",
+        translation_key="meter_firmware_version",
         entity_category=EntityCategory.DIAGNOSTIC,
         is_string=True,
     ),
@@ -349,13 +362,16 @@ class Owon4713Sensor(SensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return device info using the device-reported name when available."""
+        """Return device info; the card name is always METER_{full SN}.
+
+        The full SN serves as a stable identifier regardless of any
+        device-reported name (that one is shown by the device-name sensor).
+        """
         info = self._manager.device_info.get(self._device_id, {})
         fw_version = info.get("fw_version")
-        name = info.get("name")
         return DeviceInfo(
             identifiers={(DOMAIN, self._device_id)},
-            name=str(name) if name else f"{MANUFACTURER} {MODEL_4713} {self._device_id}",
+            name=f"METER_{self._device_id}",
             manufacturer=MANUFACTURER,
             model=MODEL_4713,
             sw_version=str(fw_version) if fw_version else None,
@@ -389,6 +405,9 @@ class Owon4713Sensor(SensorEntity):
             raw = self._manager.device_info.get(self._device_id, {}).get(
                 description.deviceinfo_key
             )
+            if description.deviceinfo_key == "name":
+                # Protocol default naming until the device reports a real one.
+                return str(raw) if raw else meter_fallback_name(self._device_id)
             if raw is None:
                 return None
             return str(raw)

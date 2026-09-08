@@ -22,6 +22,7 @@ from .const import (
     DEVICE_OFFLINE_TIMEOUT,
     DEVICE_OFFLINE_TIMEOUT_4713,
     DEVICEINFO_QUERY_INTERVAL,
+    DEVICEINFO_QUERY_MAX_ATTEMPTS,
     DOMAIN,
     DP_QUERY_INTERVAL,
     MQTT_TOPIC_CONTROL_TPL,
@@ -168,6 +169,23 @@ def _is_structured_payload(payload: Any) -> bool:
     return isinstance(payload, dict) and isinstance(payload.get("type"), str)
 
 
+def merge_4713_device_info(
+    current: dict[str, Any], data: dict[str, Any], device_id: str
+) -> None:
+    """Merge structured PC4713 device info into current deviceinfo, in place.
+
+    Structured fields overwrite existing values, while discovery-only
+    fields (e.g. "subModel") survive the merge. "version" is mapped onto
+    "fw_version" so existing consumers keep working unchanged.
+    """
+    incoming = {str(key): value for key, value in data.items()}
+    version = incoming.get("version")
+    if version is not None:
+        incoming.setdefault("fw_version", version)
+    current.update(incoming)
+    current["device_id"] = device_id
+
+
 class OwonMeterDataManager:
     """Manage OWON meter device data from MQTT."""
 
@@ -184,6 +202,8 @@ class OwonMeterDataManager:
         self.device_info: dict[str, dict[str, Any]] = {}
         # last time a getdeviceinfo query was sent per device
         self.deviceinfo_queried: dict[str, Any] = {}
+        # number of device.info queries already sent per device (PC4713 cap)
+        self.deviceinfo_attempts: dict[str, int] = {}
         # last time a missing DP query was sent per device/dp
         self.dp_queried: dict[str, dict[str, Any]] = {}
         # devices identified as speaking the structured PC4713 protocol
@@ -223,9 +243,15 @@ class OwonMeterDataManager:
         if not isinstance(info, dict):
             return
 
-        self.device_info[device_id] = info
-        # Store device_id itself so sensors can read it via deviceinfo_key
-        self.device_info[device_id]["device_id"] = device_id
+        if device_id in self.structured_devices:
+            # PC4713: merge so structured-only fields (e.g. name) survive.
+            merge_4713_device_info(
+                self.device_info.setdefault(device_id, {}), info, device_id
+            )
+        else:
+            self.device_info[device_id] = info
+            # Store device_id itself so sensors can read it via deviceinfo_key
+            self.device_info[device_id]["device_id"] = device_id
         self.model_confirmed.add(device_id)
         raw_model = str(info.get("model", ""))
         resolved = self._resolve_model(raw_model) if raw_model else DEFAULT_DEVICE_MODEL
@@ -243,7 +269,7 @@ class OwonMeterDataManager:
                 self.hass, f"{SIGNAL_DEVICE_MODEL_CHANGED}_{device_id}"
             )
         # Update device registry so sw_version is shown in HA device info page
-        fw_version = info.get("fw_version")
+        fw_version = self.device_info[device_id].get("fw_version")
         if fw_version:
             dev_reg = dr.async_get(self.hass)
             device_entry = dev_reg.async_get_device(identifiers={(DOMAIN, device_id)})
@@ -327,6 +353,9 @@ class OwonMeterDataManager:
         # The initial queries already include device info; record the query
         # time so the throttled re-query loop does not duplicate it at once.
         self.deviceinfo_queried[device_id] = dt_util.utcnow()
+        self.deviceinfo_attempts[device_id] = (
+            self.deviceinfo_attempts.get(device_id, 0) + 1
+        )
         self.hass.async_create_task(self.async_query_4713_device_info(device_id))
         self.hass.async_create_task(self.async_query_energy(device_id))
         _LOGGER.info("Sent initial PC4713 queries to %s", device_id)
@@ -334,17 +363,11 @@ class OwonMeterDataManager:
     @callback
     def _apply_4713_device_info(self, device_id: str, data: dict[str, Any]) -> None:
         """Store PC4713 device info and update registries/signals."""
-        info = {str(key): value for key, value in data.items()}
-        # Map "version" onto "fw_version" so existing consumers
-        # (diag sensors, registry updates) work unchanged.
-        version = info.get("version")
-        if version is not None:
-            info.setdefault("fw_version", version)
-        self.device_info[device_id] = info
-        self.device_info[device_id]["device_id"] = device_id
+        merged = self.device_info.setdefault(device_id, {})
+        merge_4713_device_info(merged, data, device_id)
         self.model_confirmed.add(device_id)
 
-        raw_model = str(info.get("model", ""))
+        raw_model = str(merged.get("model", ""))
         resolved = self._resolve_model(raw_model) if raw_model else DEVICE_MODEL_4713
         if resolved != DEVICE_MODEL_4713:
             # Structured payloads only come from 4713-family devices;
@@ -362,7 +385,7 @@ class OwonMeterDataManager:
                 self.hass, f"{SIGNAL_DEVICE_MODEL_CHANGED}_{device_id}"
             )
 
-        fw_version = info.get("fw_version")
+        fw_version = merged.get("fw_version")
         if fw_version:
             dev_reg = dr.async_get(self.hass)
             device_entry = dev_reg.async_get_device(identifiers={(DOMAIN, device_id)})
@@ -423,12 +446,24 @@ class OwonMeterDataManager:
 
         self._maybe_initial_query_4713(device_id)
 
-        # Re-query device info (PC4713 style) until the model is confirmed.
-        if device_id not in self.model_confirmed:
+        # Re-query device info (PC4713 style) until the model is confirmed,
+        # and until a real device name is known. The name-driven retries are
+        # capped so a firmware that never answers is not polled forever; a
+        # device that already reported its name is never queried again.
+        needs_model = device_id not in self.model_confirmed
+        needs_name = not self.device_info.get(device_id, {}).get("name")
+        within_cap = (
+            self.deviceinfo_attempts.get(device_id, 0)
+            < DEVICEINFO_QUERY_MAX_ATTEMPTS
+        )
+        if needs_model or (needs_name and within_cap):
             last_q = self.deviceinfo_queried.get(device_id)
             now = dt_util.utcnow()
             if last_q is None or (now - last_q) >= DEVICEINFO_QUERY_INTERVAL:
                 self.deviceinfo_queried[device_id] = now
+                self.deviceinfo_attempts[device_id] = (
+                    self.deviceinfo_attempts.get(device_id, 0) + 1
+                )
                 self.hass.async_create_task(
                     self.async_query_4713_device_info(device_id)
                 )

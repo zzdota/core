@@ -64,6 +64,10 @@
           "ac_same_b_different": "A und C gleich; B unterschiedlich"
         }
       },
+      "meter_device_id": { "name": "1 Geraete-ID" },
+      "meter_device_model": { "name": "2 Geraetemodell" },
+      "meter_device_sub_model": { "name": "3 Geraete-Untermodell" },
+      "meter_firmware_version": { "name": "4 Firmware-Version" },
       "voltage_avg": { "name": "Durchschnittliche Phasenspannung" },
       "apparent_power_total": { "name": "Gesamtscheinleistung" },
       "apparent_power_a": { "name": "Scheinleistung Phase A" },
@@ -108,8 +112,8 @@
       "reactive_energy_q4_a": { "name": "Blindenergie Q4 Phase A" },
       "reactive_energy_q4_b": { "name": "Blindenergie Q4 Phase B" },
       "reactive_energy_q4_c": { "name": "Blindenergie Q4 Phase C" },
-      "device_name": { "name": "6 Geraetename" },
-      "meter_event": { "name": "7 Zaehlerereignis" }
+      "device_name": { "name": "5 Geraetename" },
+      "meter_event": { "name": "6 Zaehlerereignis" }
     }
   }
 }

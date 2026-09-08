@@ -66,6 +66,10 @@
           "ac_same_b_different": "A y C iguales; B diferente"
         }
       },
+      "meter_device_id": { "name": "1 ID del dispositivo" },
+      "meter_device_model": { "name": "2 Modelo del dispositivo" },
+      "meter_device_sub_model": { "name": "3 Submodelo del dispositivo" },
+      "meter_firmware_version": { "name": "4 Version de firmware" },
       "voltage_avg": { "name": "Voltaje de fase promedio" },
       "apparent_power_total": { "name": "Potencia aparente total" },
       "apparent_power_a": { "name": "Potencia aparente de fase A" },
@@ -140,8 +144,8 @@
       "reactive_energy_q4_a": { "name": "Energia reactiva Q4 de fase A" },
       "reactive_energy_q4_b": { "name": "Energia reactiva Q4 de fase B" },
       "reactive_energy_q4_c": { "name": "Energia reactiva Q4 de fase C" },
-      "device_name": { "name": "6 Nombre del dispositivo" },
-      "meter_event": { "name": "7 Evento del medidor" }
+      "device_name": { "name": "5 Nombre del dispositivo" },
+      "meter_event": { "name": "6 Evento del medidor" }
     }
   }
 }
