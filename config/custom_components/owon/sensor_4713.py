@@ -42,22 +42,42 @@ MODEL_4713 = "PC4713"
 
 # evt bitmap bits (PC4713 protocol 3.12, "Meter Event Flags")
 METER_EVENT_BITS: dict[int, str] = {
-    0: "phase_A_sequence_abnormal",
-    1: "phase_B_sequence_abnormal",
-    2: "phase_C_sequence_abnormal",
+    0: "a",
+    1: "b",
+    2: "c",
 }
+# Reserved evt bits (3-31); any bit set there maps to the "unknown" state.
+METER_EVENT_KNOWN_MASK = 0b111
+# All translation state keys produced by parse_meter_event.
+METER_EVENT_STATE_KEYS: frozenset[str] = frozenset(
+    {
+        "normal",
+        "phase_a_sequence_abnormal",
+        "phase_b_sequence_abnormal",
+        "phase_c_sequence_abnormal",
+        "phase_a_b_sequence_abnormal",
+        "phase_a_c_sequence_abnormal",
+        "phase_b_c_sequence_abnormal",
+        "phase_a_b_c_sequence_abnormal",
+        "unknown",
+    }
+)
 
 
 def parse_meter_event(raw: Any) -> str:
-    """Convert the evt bitmap into a readable label."""
+    """Convert the evt bitmap into a translation state key."""
     try:
         bitmap = int(raw)
     except (TypeError, ValueError):
-        return str(raw)
+        return "unknown"
     if bitmap <= 0:
         return "normal"
-    events = [code for bit, code in METER_EVENT_BITS.items() if bitmap & (1 << bit)]
-    return ", ".join(events) if events else f"unknown({bitmap})"
+    if bitmap & ~METER_EVENT_KNOWN_MASK:
+        return "unknown"
+    phases = [
+        letter for bit, letter in METER_EVENT_BITS.items() if bitmap & (1 << bit)
+    ]
+    return f"phase_{'_'.join(phases)}_sequence_abnormal"
 
 
 def meter_fallback_name(device_id: str) -> str:
@@ -318,7 +338,7 @@ DIAG_4713_SENSORS: tuple[Owon4713SensorEntityDescription, ...] = (
     Owon4713SensorEntityDescription(
         key="4713_meter_event",
         data_key="evt",
-        translation_key="meter_event",
+        translation_key="phase_sequence_status",
         entity_category=EntityCategory.DIAGNOSTIC,
         is_string=True,
     ),

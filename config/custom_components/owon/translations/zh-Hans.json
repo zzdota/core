@@ -109,7 +109,20 @@
       "reactive_energy_q4_b": { "name": "B相Q4无功输出" },
       "reactive_energy_q4_c": { "name": "C相Q4无功输出" },
       "device_name": { "name": "5 设备名称" },
-      "meter_event": { "name": "6 事件标志" }
+      "phase_sequence_status": {
+        "name": "6 相序状态",
+        "state": {
+          "normal": "正常",
+          "phase_a_sequence_abnormal": "A相相序异常",
+          "phase_b_sequence_abnormal": "B相相序异常",
+          "phase_c_sequence_abnormal": "C相相序异常",
+          "phase_a_b_sequence_abnormal": "A、B相相序异常",
+          "phase_a_c_sequence_abnormal": "A、C相相序异常",
+          "phase_b_c_sequence_abnormal": "B、C相相序异常",
+          "phase_a_b_c_sequence_abnormal": "A、B、C相相序异常",
+          "unknown": "未知事件"
+        }
+      }
     }
   }
 }

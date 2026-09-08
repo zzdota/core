@@ -131,7 +131,20 @@
       "reactive_energy_q4_b": { "name": "Energie reactive Q4 phase B" },
       "reactive_energy_q4_c": { "name": "Energie reactive Q4 phase C" },
       "device_name": { "name": "5 Nom de l'appareil" },
-      "meter_event": { "name": "6 Evenement du compteur" }
+      "phase_sequence_status": {
+        "name": "6 Etat de l'ordre de phases",
+        "state": {
+          "normal": "Normal",
+          "phase_a_sequence_abnormal": "Ordre de phases anormal phase A",
+          "phase_b_sequence_abnormal": "Ordre de phases anormal phase B",
+          "phase_c_sequence_abnormal": "Ordre de phases anormal phase C",
+          "phase_a_b_sequence_abnormal": "Ordre de phases anormal phases A et B",
+          "phase_a_c_sequence_abnormal": "Ordre de phases anormal phases A et C",
+          "phase_b_c_sequence_abnormal": "Ordre de phases anormal phases B et C",
+          "phase_a_b_c_sequence_abnormal": "Ordre de phases anormal phases A, B et C",
+          "unknown": "Evenement inconnu"
+        }
+      }
     }
   }
 }

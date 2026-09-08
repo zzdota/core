@@ -113,7 +113,20 @@
       "reactive_energy_q4_b": { "name": "Blindenergie Q4 Phase B" },
       "reactive_energy_q4_c": { "name": "Blindenergie Q4 Phase C" },
       "device_name": { "name": "5 Geraetename" },
-      "meter_event": { "name": "6 Zaehlerereignis" }
+      "phase_sequence_status": {
+        "name": "6 Phasenfolge-Status",
+        "state": {
+          "normal": "Normal",
+          "phase_a_sequence_abnormal": "Phasenfolge Phase A abnormal",
+          "phase_b_sequence_abnormal": "Phasenfolge Phase B abnormal",
+          "phase_c_sequence_abnormal": "Phasenfolge Phase C abnormal",
+          "phase_a_b_sequence_abnormal": "Phasenfolge Phase A und B abnormal",
+          "phase_a_c_sequence_abnormal": "Phasenfolge Phase A und C abnormal",
+          "phase_b_c_sequence_abnormal": "Phasenfolge Phase B und C abnormal",
+          "phase_a_b_c_sequence_abnormal": "Phasenfolge Phase A, B und C abnormal",
+          "unknown": "Unbekanntes Ereignis"
+        }
+      }
     }
   }
 }

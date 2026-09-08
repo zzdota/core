@@ -119,7 +119,20 @@
       "reactive_energy_q4_b": { "name": "Phase B reactive energy Q4" },
       "reactive_energy_q4_c": { "name": "Phase C reactive energy Q4" },
       "device_name": { "name": "5 Device name" },
-      "meter_event": { "name": "6 Meter event" }
+      "phase_sequence_status": {
+        "name": "6 Phase sequence status",
+        "state": {
+          "normal": "Normal",
+          "phase_a_sequence_abnormal": "Phase A sequence abnormal",
+          "phase_b_sequence_abnormal": "Phase B sequence abnormal",
+          "phase_c_sequence_abnormal": "Phase C sequence abnormal",
+          "phase_a_b_sequence_abnormal": "Phases A, B sequence abnormal",
+          "phase_a_c_sequence_abnormal": "Phases A, C sequence abnormal",
+          "phase_b_c_sequence_abnormal": "Phases B, C sequence abnormal",
+          "phase_a_b_c_sequence_abnormal": "Phases A, B, C sequence abnormal",
+          "unknown": "Unknown event"
+        }
+      }
     }
   }
 }
