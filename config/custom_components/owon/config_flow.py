@@ -1,8 +1,11 @@
 """Config flow for OWON."""
 
-from __future__ import annotations
+from homeassistant.config_entries import ConfigFlow
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+try:
+    from homeassistant.config_entries import ConfigFlowResult
+except ImportError:
+    from homeassistant.data_entry_flow import FlowResult as ConfigFlowResult
 
 from .const import DOMAIN
 

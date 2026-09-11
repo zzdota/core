@@ -1,7 +1,5 @@
 """PCT341 sensor definitions and hex-payload parsers."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 import contextlib
 from dataclasses import dataclass
@@ -119,7 +117,7 @@ def parse_combined_data(raw: Any) -> dict[str, float | None]:
 
 
 def parse_subcircuit_power_current(raw: Any) -> dict[int, dict[str, float]]:
-    """Parse DP 125 – sub-circuit current & power.
+    """Parse DP 125 - sub-circuit current & power.
 
     Each circuit record: 1B circuit_id + 4B power (0.001kW) + 4B current (0.001A)
     Returns: {circuit_id: {"power_kw": ..., "current_a": ...}}
@@ -142,7 +140,7 @@ def parse_subcircuit_power_current(raw: Any) -> dict[int, dict[str, float]]:
 
 
 def parse_subcircuit_energy(raw: Any) -> dict[int, dict[str, float]]:
-    """Parse DP 126 – sub-circuit consumed & generated energy.
+    """Parse DP 126 - sub-circuit consumed & generated energy.
 
     Each record: 1B circuit_id + 4B consumed (0.001kWh) + 4B generated (0.001kWh)
     Returns: {circuit_id: {"energy_consumed_kwh": ..., "energy_generated_kwh": ...}}
@@ -168,7 +166,7 @@ def parse_subcircuit_energy(raw: Any) -> dict[int, dict[str, float]]:
 
 
 def parse_subcircuit_phase(raw: Any) -> dict[int, int]:
-    """Parse DP 127 – sub-circuit phase assignment.
+    """Parse DP 127 - sub-circuit phase assignment.
 
     Returns: {circuit_id: phase_enum}
     """

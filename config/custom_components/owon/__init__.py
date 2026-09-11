@@ -3,7 +3,7 @@
 from itertools import count
 import json
 import logging
-from typing import Any
+from typing import Any, TypeAlias
 
 from homeassistant.components import mqtt
 from homeassistant.components.mqtt import ReceiveMessage
@@ -45,7 +45,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.SENSOR]
 
-type OwonMeterConfigEntry = ConfigEntry[OwonMeterDataManager]
+OwonMeterConfigEntry: TypeAlias = "ConfigEntry[OwonMeterDataManager]"  # noqa: UP040
 
 
 def _log_mqtt_raw(msg: ReceiveMessage) -> None:

@@ -10,6 +10,7 @@ MeasurementsPage keeps them hidden as well.
 """
 
 from dataclasses import dataclass
+from enum import StrEnum
 import logging
 from typing import Any
 
@@ -27,9 +28,27 @@ from homeassistant.const import (
     UnitOfEnergy,
     UnitOfFrequency,
     UnitOfPower,
-    UnitOfReactiveEnergy,
-    UnitOfReactivePower,
 )
+
+try:
+    from homeassistant.const import UnitOfReactiveEnergy, UnitOfReactivePower
+except ImportError:
+
+    class UnitOfReactivePower(StrEnum):
+        """Reactive power units."""
+
+        MILLIVOLT_AMPERE_REACTIVE = "mvar"
+        VOLT_AMPERE_REACTIVE = "var"
+        KILO_VOLT_AMPERE_REACTIVE = "kvar"
+
+    class UnitOfReactiveEnergy(StrEnum):
+        """Reactive energy units."""
+
+        VOLT_AMPERE_REACTIVE_HOUR = "varh"
+        KILO_VOLT_AMPERE_REACTIVE_HOUR = "kvarh"
+
+if not hasattr(UnitOfApparentPower, "KILO_VOLT_AMPERE"):
+    UnitOfApparentPower.KILO_VOLT_AMPERE = "kVA"
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
