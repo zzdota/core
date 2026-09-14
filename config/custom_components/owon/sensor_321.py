@@ -59,31 +59,60 @@ _SUBCIRCUIT_KEY_RE = re.compile(
 )
 
 
+def _prune_stale_registry_entries(
+    hass: HomeAssistant,
+    config_entry_id: str,
+    device_id: str,
+    expected_keys: set[str],
+    key_prefix: str = "_",
+) -> None:
+    """Remove stale registry entities that no longer match a device's model.
+
+    Entities are keyed by unique_id ``{device_id}_{description.key}``. When a
+    device is re-identified under a different model (or the integration
+    upgrades its key scheme), old registry entries from the previous scheme
+    survive restarts without a runtime object and show up as permanently
+    unavailable duplicates. Any registry entry unique_id starting with
+    ``{device_id}{key_prefix}`` but not present in ``expected_keys`` is
+    removed. ``expected_keys`` contains the key part after the prefix.
+    """
+    entity_reg = er.async_get(hass)
+    prefix = f"{device_id}{key_prefix}"
+    expected_unique_ids = {f"{prefix}{key}" for key in expected_keys}
+    for reg_entry in er.async_entries_for_config_entry(entity_reg, config_entry_id):
+        if not reg_entry.unique_id.startswith(prefix):
+            continue
+        if reg_entry.unique_id in expected_unique_ids:
+            continue
+        _LOGGER.info(
+            "Removing stale registry entity %s (unique_id=%s)",
+            reg_entry.entity_id,
+            reg_entry.unique_id,
+        )
+        entity_reg.async_remove(reg_entry.entity_id)
+
+
 def _prune_stale_341_subcircuit_registry_entries(
     hass: HomeAssistant,
     config_entry_id: str,
     device_id: str,
     expected_sub_keys: set[str],
 ) -> None:
-    """Remove stale 341 sub-circuit entities left in registry.
+    """Remove 341 sub-circuit registry entries no longer inserted.
 
-    This handles restart scenarios where old entities are not part of
-    runtime memory anymore, but still exist in entity registry.
+    Thin wrapper over the generic prune for the 341 ``341_sub`` key family;
+    behaviour for 321/341 devices is unchanged.
     """
-    entity_reg = er.async_get(hass)
-    expected_unique_ids = {f"{device_id}_{sub_key}" for sub_key in expected_sub_keys}
-    sub_prefix = f"{device_id}_341_sub"
-    for reg_entry in er.async_entries_for_config_entry(entity_reg, config_entry_id):
-        if not reg_entry.unique_id.startswith(sub_prefix):
-            continue
-        if reg_entry.unique_id in expected_unique_ids:
-            continue
-        _LOGGER.info(
-            "Removing stale sub-circuit entity %s (unique_id=%s)",
-            reg_entry.entity_id,
-            reg_entry.unique_id,
-        )
-        entity_reg.async_remove(reg_entry.entity_id)
+    _prune_stale_registry_entries(
+        hass,
+        config_entry_id,
+        device_id,
+        {
+            sub_key.removeprefix("341_sub")
+            for sub_key in expected_sub_keys
+        },
+        key_prefix="_341_sub",
+    )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -432,6 +461,10 @@ async def async_setup_entry(
             subcircuit_sensors = get_341_subcircuit_sensors(
                 circuit_ids=inserted_subcircuits
             )
+            descriptions: tuple[SensorEntityDescription, ...] = (
+                *ALL_341_FIXED_SENSORS,
+                *subcircuit_sensors,
+            )
             _prune_stale_341_subcircuit_registry_entries(
                 hass,
                 entry.entry_id,
@@ -439,8 +472,7 @@ async def async_setup_entry(
                 {desc.key for desc in subcircuit_sensors},
             )
             entities: list[SensorEntity] = [
-                Owon341Sensor(device_id, desc, manager)
-                for desc in (*ALL_341_FIXED_SENSORS, *subcircuit_sensors)
+                Owon341Sensor(device_id, desc, manager) for desc in descriptions
             ]
             bitmap = _get_ct_insertion_bitmap(device_id)
             device_ct_bitmap_used[device_id] = bitmap
@@ -453,6 +485,7 @@ async def async_setup_entry(
             )
         elif device_model == DEVICE_MODEL_4713:
             device_ct_bitmap_used.pop(device_id, None)
+            descriptions = ALL_4713_SENSORS
             entities = [
                 Owon4713Sensor(device_id, description, manager)
                 for description in ALL_4713_SENSORS
@@ -466,6 +499,7 @@ async def async_setup_entry(
             _prune_stale_341_subcircuit_registry_entries(
                 hass, entry.entry_id, device_id, set()
             )
+            descriptions = ALL_SENSORS
             entities = [
                 Owon321Sensor(device_id, description, manager)
                 for description in ALL_SENSORS
@@ -476,6 +510,19 @@ async def async_setup_entry(
                 len(entities),
                 device_id,
             )
+        # Route-level cleanup: drop registry entries from a previous entity
+        # key scheme (e.g. a device first created under the 321 branch and
+        # later re-identified as 4713, which used to surface as permanently
+        # unavailable duplicates such as a stale "总电流"). Keeps only the
+        # keys this model is about to create; 321/341 data handling is
+        # unchanged.
+        _prune_stale_registry_entries(
+            hass,
+            entry.entry_id,
+            device_id,
+            {desc.key for desc in descriptions},
+            key_prefix="_",
+        )
         device_entities[device_id] = entities
         device_model_used[device_id] = device_model
         async_add_entities(entities)
